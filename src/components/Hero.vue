@@ -62,8 +62,6 @@
         },
         methods: {
             handleImageNotFound() {
-                // eslint-disable-next-line no-console
-                console.info('handleImageNotFound')
                 this.heroData.image.url = require('../assets/profile-image-placeholder.png')
             }
         },
