@@ -39,10 +39,10 @@ export const store = new Vuex.Store({
                     })
                     .catch(e => {
                         // eslint-disable-next-line no-console
-                        console.error('E0006', e)
+                        console.info('E0006', e)
                     })
             })
-        }
+        },
     },
     getters: {
         getUser: (state) => {

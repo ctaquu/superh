@@ -1,7 +1,7 @@
 <template>
     <div id="app">
-        <div v-if="user !== null">
-            <img alt="Superheroes Banner Online" class="img-banner" id="img-banner-online" src="./assets/banner.png">
+        <img alt="Superheroes Banner Online" class="img-banner" id="img-banner-online" src="./assets/banner.png">
+        <div v-if="user !== null && !loading">
             <div @click.prevent="toggleProfileDropdown" class="dropdown" id="logged-in-hero-icon"
                  v-bind:class="{'is-active' : profileDropdownActive}">
                 <div class="dropdown-trigger">
@@ -24,9 +24,7 @@
                 </div>
             </div>
         </div>
-        <div v-show="user === null">
-            <img alt="Superheroes Banner Offline" class="img-banner" id="img-banner-offline"
-                 src="./assets/banner-gray.jpg">
+        <div v-show="user === null && !loading">
             <div id="firebaseui-auth-container"></div>
         </div>
         <router-view>
@@ -47,11 +45,15 @@
         data() {
             return {
                 profileDropdownActive: false,
+                loading: true,
             }
         },
-        mounted() {
+        beforeMount() {
+            this.doFirebaseAuthStuff()
             auth.onAuthStateChanged(user => {
                 if (user) {
+                    // eslint-disable-next-line no-console
+                    console.info('user signed IN')
                     this.$store.commit(mutationTypes.ADD_USER, _.pick(user, [
                         'displayName',
                         'photoURL',
@@ -59,10 +61,17 @@
                         'phoneNumber'
                     ]))
                 } else {
+                    // eslint-disable-next-line no-console
+                    console.info('user signed OUT')
                     // User is signed out.
                     this.$store.commit(mutationTypes.REMOVE_USER);
                 }
             })
+        },
+        mounted() {
+            setTimeout(() => {
+                this.loading = false
+            }, 4000)
         },
         computed: {
             user() {
@@ -73,11 +82,28 @@
             }
         },
         methods: {
+            doFirebaseAuthStuff() {
+                // firebase UI config
+                const uiConfig = {
+                    signInSuccessUrl: '/',
+                    signInOptions: [
+                        authStatic.GoogleAuthProvider.PROVIDER_ID,
+                        authStatic.EmailAuthProvider.PROVIDER_ID,
+                        authStatic.PhoneAuthProvider.PROVIDER_ID,
+                    ],
+                };
+
+                // Initialize the FirebaseUI Widget using Firebase.
+                const ui = new firebaseui.auth.AuthUI(firebaseApp.auth());
+
+                // The start method will wait until the DOM is loaded.
+                ui.start('#firebaseui-auth-container', uiConfig);
+            },
             logout() {
                 auth.signOut().then(function () {
                 }).catch(e => {
                     // eslint-disable-next-line no-console
-                    console.error('E0001', e)
+                    console.info('E0001', e)
                 });
             },
             toggleProfileDropdown() {
@@ -89,27 +115,6 @@
                 }, 1000)
             }
         }
-    }
-
-
-    doFirebaseAuthStuff();
-
-    function doFirebaseAuthStuff() {
-        // firebase UI config
-        const uiConfig = {
-            signInSuccessUrl: '/',
-            signInOptions: [
-                authStatic.GoogleAuthProvider.PROVIDER_ID,
-                authStatic.EmailAuthProvider.PROVIDER_ID,
-                authStatic.PhoneAuthProvider.PROVIDER_ID,
-            ],
-        };
-
-        // Initialize the FirebaseUI Widget using Firebase.
-        const ui = new firebaseui.auth.AuthUI(firebaseApp.auth());
-
-        // The start method will wait until the DOM is loaded.
-        ui.start('#firebaseui-auth-container', uiConfig);
     }
 
 </script>
