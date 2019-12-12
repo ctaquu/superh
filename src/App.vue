@@ -38,6 +38,7 @@
     import {firebaseApp, authStatic, auth} from './common/firebase'
     import * as firebaseui from 'firebaseui'
     import * as _ from 'lodash'
+    import * as mutationTypes from './common/mutation-types'
 
 
     export default {
@@ -51,7 +52,7 @@
         mounted() {
             auth.onAuthStateChanged(user => {
                 if (user) {
-                    this.$store.commit('addUser', _.pick(user, [
+                    this.$store.commit(mutationTypes.ADD_USER, _.pick(user, [
                         'displayName',
                         'photoURL',
                         'email',
@@ -59,7 +60,7 @@
                     ]))
                 } else {
                     // User is signed out.
-                    this.$store.commit('removeUser');
+                    this.$store.commit(mutationTypes.REMOVE_USER);
                 }
             })
         },

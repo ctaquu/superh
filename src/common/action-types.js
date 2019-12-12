@@ -1,0 +1,1 @@
+export const ADD_RANDOM_HERO = 'ADD_RANDOM_HERO'

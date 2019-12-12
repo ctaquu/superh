@@ -5,16 +5,17 @@
                 <input class="input" placeholder="Call for a SuperHero" type="text" v-model="heroSearchString">
             </div>
             <div class="control">
-                <a :disabled="heroSearchString.length < 2" @click.prevent="searchForHeroes" class="button is-info">
+                <a :disabled="searchButtonDisabled" @click.prevent="searchForHeroes" class="button is-info">
                     Deploy
                 </a>
-                <a :disabled="!searched" @click.prevent="getRandomNHeroes(6)" class="button btn-recall is-info">
+                <a :disabled="resetButtonDisabled" @click.prevent="handleResetHeroes"
+                   class="button btn-recall is-info">
                     Recall
                 </a>
             </div>
         </div>
         <progress class="progress is-small is-primary" max="100" v-if="fetchingData">15%</progress>
-        <div id="container" v-if="!fetchingData">
+        <div id="container">
             <hero :hero-data="heroDatum" :key="index" v-for="(heroDatum, index) in heroData"/>
         </div>
     </div>
@@ -22,6 +23,9 @@
 
 <script>
 
+    import * as constants from '../common/constants'
+    import * as actionTypes from '../common/action-types'
+    import * as mutationTypes from '../common/mutation-types'
     import Hero from '../components/Hero'
 
     export default {
@@ -33,12 +37,14 @@
             return {
                 heroSearchString: '',
                 fetchingData: true,
-                searched: false,
-                // heroData: [],
+                mode: constants.APP_MODE_DEFAULT,
             }
         },
-        mounted() {
+        beforeMount() {
             this.getRandomNHeroes(6)
+        },
+        mounted() {
+            this.scroll();
         },
         props: {},
         computed: {
@@ -48,38 +54,57 @@
             user() {
                 return this.$store.getters.getUser
             },
+            searchButtonDisabled() {
+                return this.heroSearchString.length < 2
+            },
+            resetButtonDisabled() {
+                return this.mode === constants.APP_MODE_DEFAULT
+            }
         },
         methods: {
             searchForHeroes() {
                 this.fetchingData = true;
                 this.$http.get(`search/${this.heroSearchString}`)
                     .then(response => {
-                        this.$store.commit('setHeroData', response.data.results)
+                        this.$store.commit(mutationTypes.SET_HERO_DATA, response.data.results)
                         this.fetchingData = false;
-                        this.searched = true;
+                        this.mode = constants.APP_MODE_SEARCH;
                     })
                     .catch(e => {
                         // eslint-disable-next-line no-console
                         console.error('E0003', e)
                     })
             },
+            handleResetHeroes() {
+                this.$store.commit(mutationTypes.CLEAR_HERO_DATA)
+                this.getRandomNHeroes(6)
+            },
+            addRandomHero() {
+                this.fetchingData = true
+                this.$store.dispatch(actionTypes.ADD_RANDOM_HERO)
+                    .then(() => {
+                        this.fetchingData = false;
+                    })
+            },
             getRandomNHeroes(numberOfHeroes) {
                 this.fetchingData = true
-                this.searched = false
-                this.$store.commit('clearHeroData')
+                this.mode = constants.APP_MODE_DEFAULT
+
                 for (let i = 0; i < numberOfHeroes; i++) {
-                    this.$http.get(`${Math.floor(Math.random() * 731)}`)
-                        .then(response => {
-                            this.$store.commit('addHero', response.data)
-                        })
-                        .catch(e => {
-                            // eslint-disable-next-line no-console
-                            console.error('E0004', e)
-                        })
+                    this.addRandomHero()
                 }
 
                 this.fetchingData = false;
-            }
+            },
+            scroll() {
+                window.onscroll = () => {
+                    let bottomOfWindow = document.documentElement.scrollTop + window.innerHeight === document.documentElement.offsetHeight;
+
+                    if (bottomOfWindow && this.mode === constants.APP_MODE_DEFAULT) {
+                        this.getRandomNHeroes(6)
+                    }
+                };
+            },
         }
     }
 </script>
@@ -99,8 +124,11 @@
     }
 
     .progress {
-        width: 66vw;
-        margin: 0 auto;
+        width: 90vw;
+        position: fixed;
+        bottom: 10px;
+        left: 5vw;
+        z-index: 1000;
     }
 
     .btn-recall {
