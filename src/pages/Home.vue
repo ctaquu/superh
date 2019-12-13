@@ -72,6 +72,7 @@
                 durabilityFilter: this.getRandomishFilterStartValue(),
                 powerFilter: this.getRandomishFilterStartValue(),
                 combatFilter: this.getRandomishFilterStartValue(),
+                localFilterData: null,
             }
         },
         beforeMount() {
@@ -113,7 +114,8 @@
                 return constants.STARTING_POWERSTAT_VALUE + Math.floor(Math.random() * 10);
             },
             updateFilteredHeroes() {
-                const updatedHeroData = this.allHeroes
+                // const updatedHeroData = this.allHeroes
+                const updatedHeroData = Object.entries(this.$store.getters.getHeroDataForFilters).map(hero => hero[1])
                     .filter(heroData => {
 
                         const valid = {};
@@ -154,18 +156,20 @@
                 this.getRandomNHeroes(6)
             },
             addRandomHero() {
-                this.fetchingData = true
-                this.$store.dispatch(actionTypes.ADD_RANDOM_HERO)
-                    .then(() => {
-                        this.fetchingData = false;
-                    })
+                return new Promise(resolve => {
+                    this.$store.dispatch(actionTypes.ADD_RANDOM_HERO)
+                        .then(() => {
+                            resolve()
+                        })
+                })
+
             },
-            getRandomNHeroes(numberOfHeroes) {
+            async getRandomNHeroes(numberOfHeroes) {
                 this.fetchingData = true
                 this.mode = constants.APP_MODE_DEFAULT
 
                 for (let i = 0; i < numberOfHeroes; i++) {
-                    this.addRandomHero()
+                    await this.addRandomHero()
                 }
 
                 this.fetchingData = false;
@@ -199,34 +203,53 @@
             },
             async getAllHeroesForFiltering() {
 
-                //TODO: not every API is successful, check how to fallback...
-
+                let allHeroes = {}
                 this.$store.commit(mutationTypes.CLEAR_HERO_DATA)
                 this.fetchingData = true;
                 this.mode = constants.APP_MODE_FILTER
 
-                for (let i = 0; i < constants.ESTIMATED_TOTAL_NUMBER_OF_HEROES; i++) {
-                    this.getOneHeroByID(`${i}`)
-                        .then(heroData => {
-                            if (heroData.response === 'success') {
-                                this.allHeroes.push(heroData)
-                            }
-                        })
+                const heroDataFromLocalStorage = localStorage.getItem("heroData");
+
+                if (this.localFilterData === null) {
+                    // get data from API
+
+                    const syllables = ['a', 'e', 'o', 'u', 'i'];
+
+                    for (let i = 0; i < syllables.length; i++) {
+                        await this.$http.get(`search/${syllables[i]}`)
+                            .then(heroData => {
+                                heroData.data.results.forEach(heroDatum => allHeroes[heroDatum.id] = heroDatum)
+                            })
+                            .catch(e => {
+                                // eslint-disable-next-line no-console
+                                console.error('E0009', e)
+                            })
+                    }
+
+
+                    localStorage.setItem("heroData", JSON.stringify(allHeroes))
+
+                } else if (heroDataFromLocalStorage !== null) {
+                    // data already fetched from API and saved local storage
+                    //TODO: consider implementing TTL for local storage data
+                    allHeroes = JSON.parse(heroDataFromLocalStorage)
+                } else {
+                    // data already fetched from API and saved in this component
+                    allHeroes = this.localFilterData
                 }
 
-                setTimeout(() => {
-                    this.updateFilteredHeroes()
-                    this.fetchingData = false;
-                }, 5000)
+                this.fetchingData = false
+                this.localFilterData = allHeroes
+                this.$store.commit(mutationTypes.SET_HERO_DATA_FOR_FILTERS, allHeroes)
 
-                //TODO: consider setInterval for this.updateFilteredHeroes()
+                this.updateFilteredHeroes()
 
             },
             openFilters() {
                 this.getAllHeroesForFiltering()
             },
             closeFilters() {
-                this.$store.dispatch(mutationTypes.CLEAR_HERO_DATA)
+                this.$store.commit(mutationTypes.CLEAR_HERO_DATA)
                 this.getRandomNHeroes(6)
             }
         }
@@ -257,10 +280,10 @@
     }
 
     .progress {
-        width: 90vw;
+        width: 20vw;
         position: fixed;
         bottom: 10px;
-        left: 5vw;
+        left: 40vw;
         z-index: 1000;
     }
 

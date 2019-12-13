@@ -10,6 +10,7 @@ export const store = new Vuex.Store({
     state: {
         user: null,
         heroData: [],
+        heroDataForFilters: {},
     },
     mutations: {
         [mutationTypes.ADD_USER](state, user) {
@@ -26,6 +27,12 @@ export const store = new Vuex.Store({
         },
         [mutationTypes.CLEAR_HERO_DATA](state) {
             state.heroData = [];
+        },
+        [mutationTypes.SET_HERO_DATA_FOR_FILTERS](state, heroDataForFilters) {
+            state.heroDataForFilters = heroDataForFilters
+        },
+        [mutationTypes.CLEAR_HERO_DATA_FOR_FILTERS](state) {
+            state.heroDataForFilters = {};
         }
     },
     actions: {
@@ -50,6 +57,9 @@ export const store = new Vuex.Store({
         },
         getHeroData: (state) => {
             return state.heroData
+        },
+        getHeroDataForFilters: (state) => {
+            return state.heroDataForFilters
         }
     }
 })

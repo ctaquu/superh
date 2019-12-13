@@ -1,5 +1,7 @@
 import axios from "axios";
 
-axios.defaults.baseURL = 'api/10221482807763886'
+const superheroApiAccessToken = '10221482807763886';
+
+axios.defaults.baseURL = `api/${superheroApiAccessToken}`
 
 export default axios
